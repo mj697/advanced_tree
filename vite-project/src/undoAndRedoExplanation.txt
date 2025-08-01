@@ -1,0 +1,54 @@
+Scenario:
+Initial tree: 'a'
+
+You add 'b' → now tree is ['a', 'b']
+
+🧠 How State Changes Internally
+Let’s assume the following before and after calling addNode (or any change via updateTree):
+
+✅ After Step 1: Initial state
+treeData = ['a']
+history = []
+future = []
+
+✅ After Step 2: Add 'b'
+// updateTree(['a', 'b']) is called
+
+history = [['a']]       // previous treeData stored
+treeData = ['a', 'b']   // new state applied
+future = []             // cleared, since it's a new change
+
+------
+
+🔙 Now You Click Undo
+undo(); // executes:
+setFuture((f) => [treeData, ...f]);         // => future = [['a', 'b']]
+setTreeData(history[history.length - 1]);   // => treeData = ['a']
+setHistory(history.slice(0, -1));           // => history = []
+
+✅ After Undo
+treeData = ['a']       // we're back to before we added 'b'
+history = []           // we’ve undone the last thing
+future = [['a', 'b']]  // redo stack now holds the state we just undid
+
+-------
+
+🔁 If You Click Redo
+redo(); // executes:
+setHistory((h) => [...h, treeData]);        // => history = [['a']]
+setTreeData(future[0]);                     // => treeData = ['a', 'b']
+setFuture(f.slice(1));  // => future = []
+
+✅ After Redo
+treeData = ['a', 'b']   // you're back to having both items
+history = [['a']]
+future = []
+
+-------
+
+✅ Summary of the Flow
+Action	treeData	   history	    future
+Start	['a']	       []	        []
+Add 'b'	['a', 'b']	   [['a']]	    []
+Undo	['a']	       []	        [['a', 'b']]
+Redo	['a', 'b']	   [['a']]	    []

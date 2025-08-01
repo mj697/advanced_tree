@@ -7,17 +7,17 @@ const STORAGE_KEY = "my-rc-tree-data";
 export default function RcTreeExample() {
   const [treeData, setTreeData] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved
+    return saved//if we have a saved data in local storage then set it as treeData else set it as default data
       ? JSON.parse(saved)
-      : [{ title: "Root", key: "0", children: [] }];
+      : [{ title: "Root", key: "0", children: [] }];//the structure of each node data
   });
-
-  const [expandedKeys, setExpandedKeys] = useState(["0"]);
+  const [expandedKeys, setExpandedKeys] = useState(["0"]);//gathers new node keys as they are added
   const [clipboard, setClipboard] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [future, setFuture] = useState([]);
+  //setter used in copyNode, cutNode and pasteNode its state is only used in pasteNode(targetKey)
+  const [history, setHistory] = useState([]);//this is the exact opposite of future state
+  const [future, setFuture] = useState([]);//this is the exact opposite of history state
   const [newlyAddedKeys, setNewlyAddedKeys] = useState([]);
-  const [lastClickedKey, setLastClickedKey] = useState(null);
+  const [lastClickedKey, setLastClickedKey] = useState(null);//for style
   const [readOnly, setReadOnly] = useState(false); // 👈 Restored
 
   useEffect(() => {
@@ -26,11 +26,12 @@ export default function RcTreeExample() {
 
   const updateTree = (newData) => {
     setHistory((prev) => [...prev, treeData]);
-    setFuture([]);
+    //having all old treeData state plus current treeData (not to be mistaken with newData which the latest data)
+    setFuture([]);//the latest thing that happens is the next line
     setTreeData(newData);
   };
 
-  const addNode = (key) => {
+  const addNode = (key) => {//Create Node
     const newKey = Date.now().toString();
     const newNode = {
       title: "New Node",
@@ -38,78 +39,87 @@ export default function RcTreeExample() {
       children: [],
     };
     updateTree(addChildNode(treeData, key, newNode));
-    setExpandedKeys((keys) => [...new Set([...keys, key])]);
-    setNewlyAddedKeys((prev) => [...prev, newKey]);
-    setLastClickedKey(newKey);
-    setTimeout(() => {
+    setExpandedKeys((keys) => [...new Set([...keys, key])]);//for rc-tree
+    setNewlyAddedKeys((prev) => [...prev, newKey]);//style
+    setLastClickedKey(newKey);//style
+    setTimeout(() => {//style
       setNewlyAddedKeys((prev) => prev.filter((k) => k !== newKey));
     }, 1000);
   };
 
-  const renameNode = (key) => {
+  const renameNode = (key) => {//Update node
     const currentNode = findNodeByKey(treeData, key);
     const newTitle = prompt("Enter new name:", currentNode?.title || "");
     if (newTitle) {
       updateTree(renameNodeByKey(treeData, key, newTitle));
-      setLastClickedKey(key);
+      setLastClickedKey(key);//for style
     }
   };
 
-  const deleteNode = (key) => {
-    if (key === "0") return;
+  const deleteNode = (key) => {//Delete node
+    if (key === "0") return;//Root node will always remain
     updateTree(deleteNodeByKey(treeData, key));
-    setLastClickedKey(null);
+    setLastClickedKey(null);//for style
   };
 
   const copyNode = (node) => {
-    setClipboard({ node, type: "copy" });
-    setLastClickedKey(node.key);
+    setClipboard({ node, type: "copy" });//node [and all its children]
+    setLastClickedKey(node.key);//for style
   };
 
   const cutNode = (node) => {
     if (node.key === "0") return;
-    setClipboard({ node, type: "cut" });
-    setLastClickedKey(node.key);
+    setClipboard({ node, type: "cut" });//node [and all its children]
+    setLastClickedKey(node.key);//for style
   };
 
   const pasteNode = (targetKey) => {
     if (!clipboard) return;
     const newNode = {
       ...clipboard.node,
-      key: Date.now().toString(),
-      children: cloneChildren(clipboard.node.children || []),
+      key: Date.now().toString(),//make this entry unique
+      children: cloneChildren(clipboard.node.children || []),//bringing also the children to newNode here
     };
 
-    let updated = addChildNode(treeData, targetKey, newNode);
+    let updated = addChildNode(treeData, targetKey, newNode);//act of pasting whether we had copy or cut
     if (clipboard.type === "cut") {
       updated = deleteNodeByKey(updated, clipboard.node.key);
     }
 
     updateTree(updated);
     setClipboard(null);
-    setLastClickedKey(targetKey);
+    setLastClickedKey(targetKey);//style
   };
 
-  const undo = () => {
+//---------------------------------------------------------------
+  const undo = () => {//vice versa of redo
     if (history.length === 0 || readOnly) return;
     const prev = history[history.length - 1];
+
     setFuture((f) => [treeData, ...f]);
     setHistory((h) => h.slice(0, -1));
+
     setTreeData(prev);
   };
-
-  const redo = () => {
+  const redo = () => {//vice versa of undo
     if (future.length === 0 || readOnly) return;
     const next = future[0];
-    setHistory((h) => [...h, treeData]);
+
     setFuture((f) => f.slice(1));
+    setHistory((h) => [...h, treeData]); 
+
     setTreeData(next);
   };
 
+
+  //---------------------------------------------------------------
+
+  //setExpandedKeys and its state are used in rc-tree
   const expandAll = () => setExpandedKeys(getAllKeys(treeData));
   const collapseAll = () => setExpandedKeys([]);
 
-  const renderTitle = (node) => {
+  const renderNode = (node) => {//prints each node
+    //style
     const isNew = newlyAddedKeys.includes(node.key);
     const isLastClicked = node.key === lastClickedKey;
     const bgColor = isNew
@@ -117,8 +127,9 @@ export default function RcTreeExample() {
       : isLastClicked
       ? "#fff3cd"
       : "transparent";
+    //style
 
-    return (
+    return (//it is not the final outcome of the component
       <div
         style={{
           display: "flex",
@@ -128,8 +139,9 @@ export default function RcTreeExample() {
           borderRadius: "4px",
           transition: "background-color 0.3s ease",
         }}
-        onClick={() => setLastClickedKey(node.key)}
+        onClick={() => setLastClickedKey(node.key)}//for style
       >
+
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <span>{node.title}</span>
           {!readOnly && (
@@ -152,6 +164,8 @@ export default function RcTreeExample() {
             </>
           )}
         </div>
+
+        {/* style */}
         {isNew && (
           <div
             style={{
@@ -162,13 +176,15 @@ export default function RcTreeExample() {
             }}
           />
         )}
+        {/* style */}
+
       </div>
     );
   };
 
-  const transformedTree = transformTreeWithTitleRenderer(treeData, renderTitle);
+  const transformedTree = nodeRendererHelper(treeData, renderNode);
 
-  return (
+  return (//it is the final outcome of the component
     <div style={{ padding: 20 }}>
       <div style={{ marginBottom: 10, display: "flex", gap: "10px" }}>
         <button onClick={expandAll}>🔼 Expand All</button>
@@ -184,88 +200,90 @@ export default function RcTreeExample() {
         </button>
       </div>
       <Tree
-        treeData={transformedTree}
-        expandedKeys={expandedKeys}
-        onExpand={setExpandedKeys}
+        treeData={transformedTree}// FINAL NODES DATA
+        expandedKeys={expandedKeys}// rc-tree will expand all nodes with their given keys (ids)
+        onExpand={setExpandedKeys}// informing rc-tree of expanded node keys (ids)
       />
     </div>
   );
 }
 
-function addChildNode(nodes, key, newNode) {
+function addChildNode(nodes, key, newNode) {//used in pasteNode and addNode
+  //"nodes" param are the most recent treeData
   return nodes.map((node) => {
     if (node.key === key) {
-      return { ...node, children: [newNode, ...(node.children || [])] };
+      return { ...node, children: [newNode, ...(node.children || [])] };//adding newNode as the first child
     }
     if (node.children) {
-      return { ...node, children: addChildNode(node.children, key, newNode) };
+      return { ...node, children: addChildNode(node.children, key, newNode) };//calling this function on the possible children
     }
     return node;
   });
 }
 
-function renameNodeByKey(nodes, key, newTitle) {
+function renameNodeByKey(nodes, key, newTitle) {//used only in Update node (renameNode)
   return nodes.map((node) => {
     if (node.key === key) return { ...node, title: newTitle };
     if (node.children) {
       return {
         ...node,
-        children: renameNodeByKey(node.children, key, newTitle),
+        children: renameNodeByKey(node.children, key, newTitle),//calling this function on the possible children
       };
     }
     return node;
   });
 }
 
-function deleteNodeByKey(nodes, key) {
+function deleteNodeByKey(nodes, key) {//used in pasteNode (cut mode) and Delete node (deleteNode)
   return nodes
     .map((node) => {
-      if (node.key === key) return null;
-      if (node.children) {
-        return { ...node, children: deleteNodeByKey(node.children, key) };
+      if (node.key === key) return null;//nullifying the father node upon finding it
+      if (node.children) {//else going in the children and trying to find the target node in them
+        return { ...node, children: deleteNodeByKey(node.children, key) };//calling this function on the possible children
       }
       return node;
     })
     .filter(Boolean);
 }
 
-function cloneChildren(children) {
+function cloneChildren(children) {//used only in pasteNode
   return children.map((child) => ({
     ...child,
     key: Date.now().toString() + Math.random(),
-    children: child.children ? cloneChildren(child.children) : [],
+    children: child.children ? cloneChildren(child.children) : [],//calling this function on the possible children
   }));
 }
 
-function transformTreeWithTitleRenderer(treeData, renderFn) {
-  return treeData.map((node) => {
+function nodeRendererHelper(treeData, renderFn) {//used only when rendering nodes
+  //2nd param is renderNode which prints each node by returning a div element
+  return treeData.map((node) => {//turning js objects into real html divs via renderFn
     const newNode = { ...node, title: renderFn(node) };
     if (node.children) {
-      newNode.children = transformTreeWithTitleRenderer(
+      newNode.children = nodeRendererHelper(//calling this function on the possible children
         node.children,
         renderFn
       );
     }
-    return newNode;
+    return newNode;//returning rendered nodes and their children
   });
 }
 
-function getAllKeys(nodes) {
+function getAllKeys(nodes) {//only used in expandAll function
   let keys = [];
   for (const node of nodes) {
     keys.push(node.key);
     if (node.children) {
-      keys = keys.concat(getAllKeys(node.children));
+      keys = keys.concat(getAllKeys(node.children));//calling this function on the possible children
     }
   }
   return keys;
 }
 
-function findNodeByKey(nodes, key) {
+function findNodeByKey(nodes, key) {//only used when renaming (Updating) nodes
   for (const node of nodes) {
     if (node.key === key) return node;
     if (node.children) {
-      const found = findNodeByKey(node.children, key);
+      const found = findNodeByKey(node.children, key);//calling this function on the possible children
       if (found) return found;
     }
   }
