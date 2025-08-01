@@ -46,7 +46,6 @@ export default function RcTreeExample() {
       setNewlyAddedKeys((prev) => prev.filter((k) => k !== newKey));
     }, 1000);
   };
-
   const renameNode = (key) => {//Update node
     const currentNode = findNodeByKey(treeData, key);
     const newTitle = prompt("Enter new name:", currentNode?.title || "");
@@ -55,7 +54,6 @@ export default function RcTreeExample() {
       setLastClickedKey(key);//for style
     }
   };
-
   const deleteNode = (key) => {//Delete node
     if (key === "0") return;//Root node will always remain
     updateTree(deleteNodeByKey(treeData, key));
@@ -66,13 +64,11 @@ export default function RcTreeExample() {
     setClipboard({ node, type: "copy" });//node [and all its children]
     setLastClickedKey(node.key);//for style
   };
-
   const cutNode = (node) => {
     if (node.key === "0") return;
     setClipboard({ node, type: "cut" });//node [and all its children]
     setLastClickedKey(node.key);//for style
   };
-
   const pasteNode = (targetKey) => {
     if (!clipboard) return;
     const newNode = {
@@ -91,34 +87,7 @@ export default function RcTreeExample() {
     setLastClickedKey(targetKey);//style
   };
 
-//---------------------------------------------------------------
-  const undo = () => {//vice versa of redo
-    if (history.length === 0 || readOnly) return;
-    const prev = history[history.length - 1];
-
-    setFuture((f) => [treeData, ...f]);
-    setHistory((h) => h.slice(0, -1));
-
-    setTreeData(prev);
-  };
-  const redo = () => {//vice versa of undo
-    if (future.length === 0 || readOnly) return;
-    const next = future[0];
-
-    setFuture((f) => f.slice(1));
-    setHistory((h) => [...h, treeData]); 
-
-    setTreeData(next);
-  };
-
-
-  //---------------------------------------------------------------
-
-  //setExpandedKeys and its state are used in rc-tree
-  const expandAll = () => setExpandedKeys(getAllKeys(treeData));
-  const collapseAll = () => setExpandedKeys([]);
-
-  const renderNode = (node) => {//prints each node
+   const renderNode = (node) => {//prints each node
     //style
     const isNew = newlyAddedKeys.includes(node.key);
     const isLastClicked = node.key === lastClickedKey;
@@ -182,6 +151,28 @@ export default function RcTreeExample() {
     );
   };
 
+  const undo = () => {//vice versa of redo
+    if (history.length === 0 || readOnly) return;
+    const prev = history[history.length - 1];
+
+    setFuture((f) => [treeData, ...f]);
+    setHistory((h) => h.slice(0, -1));
+
+    setTreeData(prev);
+  };
+  const redo = () => {//vice versa of undo
+    if (future.length === 0 || readOnly) return;
+    const next = future[0];
+
+    setFuture((f) => f.slice(1));
+    setHistory((h) => [...h, treeData]); 
+
+    setTreeData(next);
+  };
+
+  const expandAll = () => setExpandedKeys(getAllKeys(treeData));//setExpandedKeys and its state are used in rc-tree
+  const collapseAll = () => setExpandedKeys([]);
+
   const transformedTree = nodeRendererHelper(treeData, renderNode);
 
   return (//it is the final outcome of the component
@@ -207,6 +198,8 @@ export default function RcTreeExample() {
     </div>
   );
 }
+
+//------------------------------------------
 
 function addChildNode(nodes, key, newNode) {//used in pasteNode and addNode
   //"nodes" param are the most recent treeData
