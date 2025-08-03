@@ -21,7 +21,7 @@ export default function RcTreeExample() {
   const [readOnly, setReadOnly] = useState(false);
   //these three states are all search-related:
   const [searchTerm, setSearchTerm] = useState("");
-  const [matches, setMatches] = useState([]);
+  const [matches, setMatches] = useState([]);//style for matched nodes
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
 
   useEffect(() => {
@@ -180,7 +180,9 @@ export default function RcTreeExample() {
   const expandAll = () => setExpandedKeys(getAllKeys(treeData));//setExpandedKeys and its state are used in rc-tree
   const collapseAll = () => setExpandedKeys([]);
 
-  const searchAndScroll = (term) => {
+  const searchAndScroll = (term) => {//THIS FUNCTION WILL RUN EVERY TIME WE HIT ENTER WITH A FILLED SEARCH INPUT
+    //and setCurrentMatchIndex will increase by every call
+    
     if (!term) return;
     const matchedNodes = [];
     //const parentsToExpand = new Set();
@@ -188,15 +190,25 @@ export default function RcTreeExample() {
     const traverse = (nodes, ancestors = []) => {
       for (const node of nodes) {
         if (node.title.toLowerCase().includes(term.toLowerCase())) {
+          //this node might become a child when traverse is called in second if so its ancestors will be used here
           matchedNodes.push({ key: node.key, ancestors });
         }
-        if (node.children) {
+        if (node.children) {//this is not an else case and WILL execute (checking the children separately)
           traverse(node.children, [...ancestors, node.key]);
+          //see the entire second argument? that is the array of ancestors. this array is actually the
+          //list of all iterated nodes. we are releasing all previously-gathered node keys in a new array in each iteration while
+          //adding the current node key to array by appending until it reaches the bottom of tree.
+          //further explanation: 
+          // first iteration: ancestors = [] gets first node.key so we'll have for example [1] (...ancestors = ...1)
+          // second iteration: ancestors = [1] gets second node.key so we'll have for example [1,2] (...ancestors = ...1,2)
+          // third ...
+          // we can see the example tree in tree.js
         }
       }
     };
 
     traverse(treeData);
+    //why function signature shows 2 parameters but we are sending one? 2nd param is [] by default
     
     if (matchedNodes.length === 0) {
       alert("No matches found.");
@@ -204,11 +216,20 @@ export default function RcTreeExample() {
     }
 
     const match = matchedNodes[currentMatchIndex % matchedNodes.length];
-    const allKeys = [...new Set([...expandedKeys, ...match.ancestors])];
+    //we could use currentMatchIndex but what about the loop back to first match after reaching the last one?
+    //% is for looping back to first match when we reached the last one
+    //example: we have 4 matches. so when we reach 4th and hit enter, currentMatchIndex=3,
+    //matchedNodes=4, then 3%4=3, so we go back to 0 index of matches which is the first one.
 
-    setExpandedKeys(allKeys);
-    setMatches(matchedNodes.map((m) => m.key));
+    const allExpandedKeys = [...new Set([...expandedKeys, ...match.ancestors])];
+    //combining previously-expanded nodes (not because of search match) with what we found as search matches
+
+    setExpandedKeys(allExpandedKeys);//passed to rc-tree
+    setMatches(matchedNodes.map((m) => m.key));//for style of found matches
     setCurrentMatchIndex((prev) => (prev + 1) % matchedNodes.length);
+    //increasing matched index when hitting enter on filled search input and MAKING IT READY FOR NEXT ENTER HIT
+    //when we are one 3rd match it becomes 4 behind the scene for next enter hit and when hit was done,
+    //and we reached const match = matchedNodes[currentMatchIndex % matchedNodes.length], we'll have 4%4=0
 
     setTimeout(() => {
       const el = document.querySelector(`[data-key="${match.key}"]`);
