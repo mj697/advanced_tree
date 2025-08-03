@@ -18,7 +18,11 @@ export default function RcTreeExample() {
   const [future, setFuture] = useState([]);//this is the exact opposite of history state
   const [newlyAddedKeys, setNewlyAddedKeys] = useState([]);
   const [lastClickedKey, setLastClickedKey] = useState(null);//for style
-  const [readOnly, setReadOnly] = useState(false); // 👈 Restored
+  const [readOnly, setReadOnly] = useState(false);
+  //these three states are all search-related:
+  const [searchTerm, setSearchTerm] = useState("");
+  const [matches, setMatches] = useState([]);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(treeData));
@@ -91,8 +95,11 @@ export default function RcTreeExample() {
     //style
     const isNew = newlyAddedKeys.includes(node.key);
     const isLastClicked = node.key === lastClickedKey;
+    const isMatched = matches.includes(node.key);
     const bgColor = isNew
       ? "#d4edda"
+      : isMatched
+      ? "#ffeeba"
       : isLastClicked
       ? "#fff3cd"
       : "transparent";
@@ -173,6 +180,42 @@ export default function RcTreeExample() {
   const expandAll = () => setExpandedKeys(getAllKeys(treeData));//setExpandedKeys and its state are used in rc-tree
   const collapseAll = () => setExpandedKeys([]);
 
+  const searchAndScroll = (term) => {
+    if (!term) return;
+    const matchedNodes = [];
+    //const parentsToExpand = new Set();
+
+    const traverse = (nodes, ancestors = []) => {
+      for (const node of nodes) {
+        if (node.title.toLowerCase().includes(term.toLowerCase())) {
+          matchedNodes.push({ key: node.key, ancestors });
+        }
+        if (node.children) {
+          traverse(node.children, [...ancestors, node.key]);
+        }
+      }
+    };
+
+    traverse(treeData);
+    
+    if (matchedNodes.length === 0) {
+      alert("No matches found.");
+      return;
+    }
+
+    const match = matchedNodes[currentMatchIndex % matchedNodes.length];
+    const allKeys = [...new Set([...expandedKeys, ...match.ancestors])];
+
+    setExpandedKeys(allKeys);
+    setMatches(matchedNodes.map((m) => m.key));
+    setCurrentMatchIndex((prev) => (prev + 1) % matchedNodes.length);
+
+    setTimeout(() => {
+      const el = document.querySelector(`[data-key="${match.key}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+  };
+
   const transformedTree = nodeRendererHelper(treeData, renderNode);
 
   return (//it is the final outcome of the component
@@ -189,6 +232,18 @@ export default function RcTreeExample() {
         <button onClick={() => setReadOnly((v) => !v)}>
           {readOnly ? "🔓 Make Editable" : "🔒 Read-Only Mode"}
         </button>
+         <input
+          type="text"
+          placeholder="Search nodes..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && searchAndScroll(searchTerm)}
+          style={{
+            padding: "4px",
+            borderRadius: "4px",
+            border: "1px solid #ccc",
+          }}
+        />
       </div>
       <Tree
         treeData={transformedTree}// FINAL NODES DATA
