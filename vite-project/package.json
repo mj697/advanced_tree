@@ -1,6 +1,6 @@
 {
   "name": "vite-project",
-  "homepage": "https://mj697.github.io/advanced_tree",
+  "homepage": "https://mj697.github.io/advanced_tree/",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,6 +13,7 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "gh-pages": "^6.3.0",
     "github-pages": "^3.0.2",
     "rc-tree": "^5.13.1",
     "react": "^19.1.0",

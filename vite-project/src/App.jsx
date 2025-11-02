@@ -315,7 +315,7 @@ export default function RcTreeExample() {
               return
             }
 
-            if (pw.current.value !== '123') return alert('رمز عبور اشتباه است')
+            if (pw.current.value !== 'esmaeili1359._') return alert('رمز عبور اشتباه است')
             setReadOnly((v) => !v)
             document.getElementById('my-pw').value = ''
           }}>
