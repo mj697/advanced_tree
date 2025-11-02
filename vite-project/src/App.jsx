@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Tree from "rc-tree";
 import "rc-tree/assets/index.css";
+import './App.css'
 
 const STORAGE_KEY = "my-rc-tree-data";
 
@@ -9,8 +10,10 @@ export default function RcTreeExample() {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved//if we have a saved data in local storage then set it as treeData else set it as default data
       ? JSON.parse(saved)
-      : [{ title: "Root", key: "0", children: [] }];//the structure of each node data
+      : [{ key: "0", title: "Root", type: "1", children: [] }];//the structure of each node data
   });
+  const pw = useRef()
+
   const [expandedKeys, setExpandedKeys] = useState(["0"]);//gathers new node keys as they are added
   const [clipboard, setClipboard] = useState(null);
   //setter used in copyNode, cutNode and pasteNode its state is only used in pasteNode(targetKey)
@@ -18,15 +21,36 @@ export default function RcTreeExample() {
   const [future, setFuture] = useState([]);//this is the exact opposite of history state
   const [newlyAddedKeys, setNewlyAddedKeys] = useState([]);
   const [lastClickedKey, setLastClickedKey] = useState(null);//for style
-  const [readOnly, setReadOnly] = useState(false);
+  const [readOnly, setReadOnly] = useState(true);
   //these three states are all search-related:
   const [searchTerm, setSearchTerm] = useState("");
   const [matches, setMatches] = useState([]);//style for matched nodes
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
 
+  // const { csrf } = useContextData()
+
+  // const { data, isFetching } = useQuery({
+  //   queryKey: ['get-tree-data'],
+  //   queryFn: ({ signal }) => getTreeData({ signal }),
+  //   gcTime: 0
+  // })
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(treeData));
   }, [treeData]);
+
+
+  // useEffect(() => {
+  //   if (data) setTreeData(data.tree);
+  // }, [data])
+
+  // const { mutate, isPending } = useMutation({
+  //   mutationFn: updateTreeData,
+  //   onSuccess: (response) => {
+  //     toast.success(response.message)
+  //   },
+  //   onError: (err) => toast.error(err.info.message)
+  // })
 
   const updateTree = (newData) => {
     setHistory((prev) => [...prev, treeData]);
@@ -36,12 +60,32 @@ export default function RcTreeExample() {
   };
 
   const addNode = (key) => {//Create Node
+    const currentType = findNodeByKey(treeData, key).type
+
+    let type
+    if (currentType == 1) {
+      type = prompt("واحد یا نفر؟ عدد 1 یا 2 را وارد نمائید.")//?.toLowerCase();
+      if (type !== '1' && type !== '2') {
+        alert("تنها اعداد 1 یا 2 قابل قبول اند.");
+        return;
+      }
+    } else {
+      type = '2'//prompt("")//?.toLowerCase();
+      // if (type !== '2') {
+      //   alert("Please type '2'");
+      //   return;
+      // }
+    }
+
+
     const newKey = Date.now().toString();
     const newNode = {
-      title: "New Node",
+      title: type === "1" ? "New Unit" : "New Person",
       key: newKey,
+      type,
       children: [],
     };
+
     updateTree(addChildNode(treeData, key, newNode));
     setExpandedKeys((keys) => [...new Set([...keys, key])]);//for rc-tree
     setNewlyAddedKeys((prev) => [...prev, newKey]);//style
@@ -50,9 +94,10 @@ export default function RcTreeExample() {
       setNewlyAddedKeys((prev) => prev.filter((k) => k !== newKey));
     }, 1000);
   };
+
   const renameNode = (key) => {//Update node
     const currentNode = findNodeByKey(treeData, key);
-    const newTitle = prompt("Enter new name:", currentNode?.title || "");
+    const newTitle = prompt("عنوان:", currentNode?.title || "");
     if (newTitle) {
       updateTree(renameNodeByKey(treeData, key, newTitle));
       setLastClickedKey(key);//for style
@@ -75,6 +120,13 @@ export default function RcTreeExample() {
   };
   const pasteNode = (targetKey) => {
     if (!clipboard) return;
+
+    const target = findNodeByKey(treeData, targetKey);
+    if (target?.type === "2") {
+      alert("هر واحد تنها میتواند تحت واحد دیگر باشد.");
+      return;
+    }
+
     const newNode = {
       ...clipboard.node,
       key: Date.now().toString(),//make this entry unique
@@ -88,10 +140,10 @@ export default function RcTreeExample() {
 
     updateTree(updated);
     setClipboard(null);
-    setLastClickedKey(targetKey);//style
+    setLastClickedKey(targetKey);
   };
 
-   const renderNode = (node) => {//prints each node
+  const renderNode = (node) => {//prints each node
     //style
     const isNew = newlyAddedKeys.includes(node.key);
     const isLastClicked = node.key === lastClickedKey;
@@ -99,10 +151,10 @@ export default function RcTreeExample() {
     const bgColor = isNew
       ? "#d4edda"
       : isMatched
-      ? "#ffeeba"
-      : isLastClicked
-      ? "#fff3cd"
-      : "transparent";
+        ? "#ffeeba"
+        : isLastClicked
+          ? "#fff3cd"
+          : "transparent";
     //style
 
     return (//it is not the final outcome of the component
@@ -119,7 +171,10 @@ export default function RcTreeExample() {
       >
 
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span>{node.title}</span>
+          <span>
+            {node.type === "1" ? "🏢" : node.type === "2" ? "👤" : "📁"} {node.title}
+          </span>
+
           {!readOnly && (
             <>
               <button onClick={() => addNode(node.key)}>➕</button>
@@ -172,7 +227,7 @@ export default function RcTreeExample() {
     const next = future[0];
 
     setFuture((f) => f.slice(1));
-    setHistory((h) => [...h, treeData]); 
+    setHistory((h) => [...h, treeData]);
 
     setTreeData(next);
   };
@@ -182,7 +237,7 @@ export default function RcTreeExample() {
 
   const searchAndScroll = (term) => {//THIS FUNCTION WILL RUN EVERY TIME WE HIT ENTER WITH A FILLED SEARCH INPUT
     //and setCurrentMatchIndex will increase by every call
-    
+
     if (!term) return;
     const matchedNodes = [];
     //const parentsToExpand = new Set();
@@ -209,7 +264,7 @@ export default function RcTreeExample() {
 
     traverse(treeData);
     //why function signature shows 2 parameters but we are sending one? 2nd param is [] by default
-    
+
     if (matchedNodes.length === 0) {
       alert("No matches found.");
       return;
@@ -240,22 +295,40 @@ export default function RcTreeExample() {
   const transformedTree = nodeRendererHelper(treeData, renderNode);
 
   return (//it is the final outcome of the component
-    <div style={{ padding: 20 }}>
+    <div style={{direction: 'rtl'}}>
+      <h5> درختواره ساختار سازمانی </h5>
+      <hr />
       <div style={{ marginBottom: 10, display: "flex", gap: "10px" }}>
-        <button onClick={expandAll}>🔼 Expand All</button>
-        <button onClick={collapseAll}>🔽 Collapse All</button>
-        <button onClick={undo} disabled={history.length === 0 || readOnly}>
+        <button className="btn btn-info" style={{ fontSize: 'small' }} onClick={expandAll}>🔼 گشودن همه</button>
+        <button className="btn btn-info" style={{ fontSize: 'small' }} onClick={collapseAll}>🔽 بستن همه</button>
+        <button className="btn btn-info" style={{ fontSize: 'small' }} onClick={undo} disabled={history.length === 0 || readOnly}>
           ↩️ Undo
         </button>
-        <button onClick={redo} disabled={future.length === 0 || readOnly}>
+        <button className="btn btn-info" style={{ fontSize: 'small' }} onClick={redo} disabled={future.length === 0 || readOnly}>
           ↪️ Redo
-        </button>
-        <button onClick={() => setReadOnly((v) => !v)}>
-          {readOnly ? "🔓 Make Editable" : "🔒 Read-Only Mode"}
-        </button>
-         <input
+        </button>{" "}
+        <span style={{ width: '680px' }}>
+          <input type="password" ref={pw} placeholder="رمز ورود" id="my-pw"/>{" "}
+          <button className="btn btn-primary" style={{ fontSize: 'small' }} onClick={() => {
+            if (!readOnly) {
+              setReadOnly((v) => !v)
+              return
+            }
+
+            if (pw.current.value !== '123') return alert('رمز عبور اشتباه است')
+            setReadOnly((v) => !v)
+            document.getElementById('my-pw').value = ''
+          }}>
+            {!readOnly ? "🔓 قابل ویرایش است" : "🔒  فقط قابل مشاهده است "}
+          </button></span>
+        <button
+          style={{ fontSize: 'small', marginLeft: '20px' }}
+          className="btn btn-warning"
+          disabled={!clipboard} onClick={() => setClipboard(null)}
+        >خالی کردن کلیپ بورد</button>
+        <input
           type="text"
-          placeholder="Search nodes..."
+          placeholder="جستجو با Enter"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && searchAndScroll(searchTerm)}
@@ -263,15 +336,33 @@ export default function RcTreeExample() {
             padding: "4px",
             borderRadius: "4px",
             border: "1px solid #ccc",
+            marginLeft: '75px'
           }}
         />
+        {/* <button
+          className="btn btn-success"
+          disabled={isPending || !treeData || readOnly}
+          style={{ fontSize: 'small', float: 'left', left: 0 }}
+          onClick={() => {
+            if (!confirm('آیا مطمئن هستید؟')) return
+            mutate({ csrf, data: treeData })
+          }}>ثبت تغییرات</button> */}
       </div>
-      <Tree
-        treeData={transformedTree}// FINAL NODES DATA
-        expandedKeys={expandedKeys}// rc-tree will expand all nodes with their given keys (ids)
-        onExpand={setExpandedKeys}// informing rc-tree of expanded node keys (ids)
-      />
-    </div>
+      <div className="contents" style={{ padding: 20 }}>
+
+        {
+          false ? <div className="spinner-border spinner-border-sm text-warning" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+
+            :
+            <Tree
+              showLine={{ showLeafIcon: true }}
+              treeData={transformedTree}// FINAL NODES DATA
+              expandedKeys={expandedKeys}// rc-tree will expand all nodes with their given keys (ids)
+              onExpand={setExpandedKeys}// informing rc-tree of expanded node keys (ids)
+            />}
+      </div></div>
   );
 }
 
