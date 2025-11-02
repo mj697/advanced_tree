@@ -4,13 +4,14 @@ import "rc-tree/assets/index.css";
 import './App.css'
 
 const STORAGE_KEY = "my-rc-tree-data";
+const baseNode = [{ key: "0", title: "Root", type: "1", children: [] }]
 
 export default function RcTreeExample() {
   const [treeData, setTreeData] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved//if we have a saved data in local storage then set it as treeData else set it as default data
       ? JSON.parse(saved)
-      : [{ key: "0", title: "Root", type: "1", children: [] }];//the structure of each node data
+      : baseNode;//the structure of each node data
   });
   const pw = useRef()
 
@@ -295,7 +296,7 @@ export default function RcTreeExample() {
   const transformedTree = nodeRendererHelper(treeData, renderNode);
 
   return (//it is the final outcome of the component
-    <div style={{direction: 'rtl'}}>
+    <div style={{ direction: 'rtl' }}>
       <h5> درختواره ساختار سازمانی </h5>
       <hr />
       <div style={{ marginBottom: 10, display: "flex", gap: "10px" }}>
@@ -308,7 +309,7 @@ export default function RcTreeExample() {
           ↪️ Redo
         </button>{" "}
         <span style={{ width: '680px' }}>
-          <input type="password" ref={pw} placeholder="رمز ورود" id="my-pw"/>{" "}
+          <input type="password" ref={pw} placeholder="رمز ورود" id="my-pw" />{" "}
           <button className="btn btn-primary" style={{ fontSize: 'small' }} onClick={() => {
             if (!readOnly) {
               setReadOnly((v) => !v)
@@ -321,6 +322,12 @@ export default function RcTreeExample() {
           }}>
             {!readOnly ? "🔓 قابل ویرایش است" : "🔒  فقط قابل مشاهده است "}
           </button></span>
+        <button disabled={readOnly} style={{ color: 'red' }} onClick={() => {
+          if (!confirm("همه تغییرات حذف خواهند شد. آیا مطمئن هستید؟")) return
+          setTreeData(p => baseNode)
+          localStorage.setItem("my-rc-tree-data", baseNode)
+        }}
+        >بازنشانی دیتا</button>
         <button
           style={{ fontSize: 'small', marginLeft: '20px' }}
           className="btn btn-warning"
