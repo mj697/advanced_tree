@@ -66,6 +66,7 @@ export default function RcTreeExample() {
     let type
     if (currentType == 1) {
       type = prompt("واحد یا نفر؟ عدد 1 یا 2 را وارد نمائید.")//?.toLowerCase();
+      if (!type) return
       if (type !== '1' && type !== '2') {
         alert("تنها اعداد 1 یا 2 قابل قبول اند.");
         return;
@@ -123,7 +124,7 @@ export default function RcTreeExample() {
     if (!clipboard) return;
 
     const target = findNodeByKey(treeData, targetKey);
-    if (target?.type === "2") {
+    if (target?.type === "2" && clipboard.node.type == '1') {
       alert("هر واحد تنها میتواند تحت واحد دیگر باشد.");
       return;
     }
@@ -300,8 +301,8 @@ export default function RcTreeExample() {
       <h5> درختواره ساختار سازمانی </h5>
       <hr />
       <div style={{ marginBottom: 10, display: "flex", gap: "10px" }}>
-        <button className="btn btn-info" style={{ fontSize: 'small' }} onClick={expandAll}>🔼 گشودن همه</button>
-        <button className="btn btn-info" style={{ fontSize: 'small' }} onClick={collapseAll}>🔽 بستن همه</button>
+        <button className="btn btn-info" style={{ fontSize: 'small' }} onClick={expandAll}>🔽 گشودن همه</button>
+        <button className="btn btn-info" style={{ fontSize: 'small' }} onClick={collapseAll}>🔼 بستن همه</button>
         <button className="btn btn-info" style={{ fontSize: 'small' }} onClick={undo} disabled={history.length === 0 || readOnly}>
           ↩️ Undo
         </button>
